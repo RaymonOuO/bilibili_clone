@@ -6,5 +6,8 @@ public interface UserConstant {
     String GENDER_UNKNOW = "2";
     String DEFAULT_BIRTH = "2000-01-01";
     String DEFAULT_NICK = "萌新";
+    String USER_FOLLOWING_GROUP_TYPE_DEFAULT = "2";
+    String USER_FOLLOWING_GROUP_TYPE_USER = "3";
+    String USER_FOLLOWING_GROUP_ALL_NAME = "全部关注";
 
 }

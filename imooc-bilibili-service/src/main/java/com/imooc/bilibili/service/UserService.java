@@ -1,6 +1,8 @@
 package com.imooc.bilibili.service;
 
+import com.alibaba.fastjson.JSONObject;
 import com.imooc.bilibili.dao.UserDao;
+import com.imooc.bilibili.domain.PageResult;
 import com.imooc.bilibili.domain.User;
 import com.imooc.bilibili.domain.UserInfo;
 import com.imooc.bilibili.domain.constant.UserConstant;
@@ -13,7 +15,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.PostMapping;
 
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
+import java.util.Set;
 
 @Service
 public class UserService {
@@ -121,5 +126,33 @@ public class UserService {
         user.setUpdateTime(new Date());
         userDao.updateUsers(user);
 
+    }
+
+    public void updateUserInfos(UserInfo userInfo) {
+        userInfo.setUpdateTime(new Date());
+        userDao.updateUserInfos(userInfo);
+    }
+
+    public User getUserById(Long followingId) {
+        return userDao.getUserById(followingId);
+    }
+
+    public List<UserInfo> getUserInfoByUserIds(Set<Long> userIdList) {
+        return userDao.getUserInfoByUserIds(userIdList);
+    }
+
+    public PageResult<UserInfo> pageListUserInfos(JSONObject params) {
+        Integer no = params.getInteger("no");
+        Integer size = params.getInteger("size");
+        params.put("start", (no - 1) * size);
+        params.put("limit", size);
+
+        Integer total = userDao.pageCountUserInfos(params);
+        List<UserInfo> list = new ArrayList<>();
+        if (total > 0) {
+            list = userDao.pageListUserInfos(params);
+        }
+
+        return new PageResult<>(total, list);
     }
 }
