@@ -4,12 +4,29 @@ import com.imooc.bilibili.dao.VideoDao;
 import com.imooc.bilibili.domain.*;
 import com.imooc.bilibili.domain.exception.ConditionException;
 import com.imooc.bilibili.service.util.FastDFSUtil;
+import com.imooc.bilibili.service.util.IpUtil;
+import org.apache.mahout.cf.taste.common.TasteException;
+import org.apache.mahout.cf.taste.impl.common.FastByIDMap;
+import org.apache.mahout.cf.taste.impl.model.GenericDataModel;
+import org.apache.mahout.cf.taste.impl.model.GenericPreference;
+import org.apache.mahout.cf.taste.impl.model.GenericUserPreferenceArray;
+import org.apache.mahout.cf.taste.impl.neighborhood.NearestNUserNeighborhood;
+import org.apache.mahout.cf.taste.impl.recommender.GenericUserBasedRecommender;
+import org.apache.mahout.cf.taste.impl.similarity.UncenteredCosineSimilarity;
+import org.apache.mahout.cf.taste.model.DataModel;
+import org.apache.mahout.cf.taste.model.PreferenceArray;
+import org.apache.mahout.cf.taste.neighborhood.UserNeighborhood;
+import org.apache.mahout.cf.taste.recommender.RecommendedItem;
+import org.apache.mahout.cf.taste.recommender.Recommender;
+import org.apache.mahout.cf.taste.similarity.UserSimilarity;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import eu.bitwalker.useragentutils.UserAgent;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -266,5 +283,75 @@ public class VideoService {
     }
 
 
+    public void addVideoView(VideoView videoView, HttpServletRequest request) {
+        Long userId = videoView.getUserId();
+        Long videoId = videoView.getVideoId();
+        //生成clientId
+        String agent = request.getHeader("User-Agent");
+        UserAgent userAgent = UserAgent.parseUserAgentString(agent);
+        String clientId = String.valueOf(userAgent.getId());
+        String ip = IpUtil.getIP(request);
+        Map<String, Object> params = new HashMap<>();
+        if(userId != null){
+            params.put("userId", userId);
+        }else{
+            params.put("ip", ip);
+            params.put("clientId", clientId);
+        }
+        Date now = new Date();
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+        params.put("today", sdf.format(now));
+        params.put("videoId", videoId);
+        //添加观看记录
+        VideoView dbVideoView = videoDao.getVideoView(params);
+        if(dbVideoView == null){
+            videoView.setIp(ip);
+            videoView.setClientId(clientId);
+            videoView.setCreateTime(new Date());
+            videoDao.addVideoView(videoView);
+        }
+    }
+
+    public Integer getVideoViewCounts(Long videoId) {
+        return videoDao.getVideoViewCounts(videoId);
+    }
+
+    /**
+     * 基于用户的协同推荐
+     * @param userId 用户id
+     */
+    public List<Video> recommend(Long userId) throws TasteException {
+        List<UserPreference> list = videoDao.getAllUserPreference();
+        //创建数据模型
+        DataModel dataModel = this.createDataModel(list);
+        //获取用户相似程度
+        UserSimilarity similarity = new UncenteredCosineSimilarity(dataModel);
+        System.out.println(similarity.userSimilarity(11, 12));
+        //获取用户邻居
+        UserNeighborhood userNeighborhood = new NearestNUserNeighborhood(2, similarity, dataModel);
+        long[] ar = userNeighborhood.getUserNeighborhood(userId);
+        //构建推荐器
+        Recommender recommender = new GenericUserBasedRecommender(dataModel, userNeighborhood, similarity);
+        //推荐视频
+        List<RecommendedItem> recommendedItems = recommender.recommend(userId, 5);
+        List<Long> itemIds = recommendedItems.stream().map(RecommendedItem::getItemID).collect(Collectors.toList());
+        return videoDao.batchGetVideosByIds(itemIds);
+    }
+
+    private DataModel createDataModel(List<UserPreference> userPreferenceList) {
+        FastByIDMap<PreferenceArray> fastByIdMap = new FastByIDMap<>();
+        Map<Long, List<UserPreference>> map = userPreferenceList.stream().collect(Collectors.groupingBy(UserPreference::getUserId));
+        Collection<List<UserPreference>> list = map.values();
+        for(List<UserPreference> userPreferences : list){
+            GenericPreference[] array = new GenericPreference[userPreferences.size()];
+            for(int i = 0; i < userPreferences.size(); i++){
+                UserPreference userPreference = userPreferences.get(i);
+                GenericPreference item = new GenericPreference(userPreference.getUserId(), userPreference.getVideoId(), userPreference.getValue());
+                array[i] = item;
+            }
+            fastByIdMap.put(array[0].getUserID(), new GenericUserPreferenceArray(Arrays.asList(array)));
+        }
+        return new GenericDataModel(fastByIdMap);
+    }
 
 }

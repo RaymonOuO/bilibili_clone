@@ -4,10 +4,11 @@ import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.imooc.bilibili.api.support.UserSupport;
 import com.imooc.bilibili.domain.*;
-//import com.imooc.bilibili.service.ElasticSearchService;
+import com.imooc.bilibili.service.ElasticSearchService;
 import com.imooc.bilibili.service.VideoService;
 //import org.apache.mahout.cf.taste.common.TasteException;
 import com.imooc.bilibili.service.VideoService;
+import org.apache.mahout.cf.taste.common.TasteException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -25,10 +26,10 @@ public class VideoApi {
 
     @Autowired
     private UserSupport userSupport;
-//
-//    @Autowired
-//    private ElasticSearchService elasticSearchService;
-//
+
+    @Autowired
+    private ElasticSearchService elasticSearchService;
+
     /**
      * 视频投稿
      */
@@ -37,8 +38,8 @@ public class VideoApi {
         Long userId = userSupport.getCurrentUserId();
         video.setUserId(userId);
         videoService.addVideos(video);
-//        //在es中添加一条视频数据
-//        elasticSearchService.addVideo(video);
+        //在es中添加一条视频数据
+        elasticSearchService.addVideo(video);
         return JsonResponse.success();
     }
 //
@@ -193,44 +194,44 @@ public class VideoApi {
         return new JsonResponse<>(result);
     }
 
-//    /**
-//     * 添加视频观看记录
-//     */
-//    @PostMapping("/video-views")
-//    public JsonResponse<String> addVideoView(@RequestBody VideoView videoView,
-//                                             HttpServletRequest request){
-//        Long userId;
-//        try{
-//            userId = userSupport.getCurrentUserId();
-//            videoView.setUserId(userId);
-//            videoService.addVideoView(videoView, request);
-//        }catch (Exception e){
-//            videoService.addVideoView(videoView, request);
-//        }
-//        //同步更新视频播放量到Elasticsearch
-//        elasticSearchService.updateVideoViewCount(videoView.getVideoId());
-//        return JsonResponse.success();
-//    }
-//
-//    /**
-//     * 查询视频播放量
-//     */
-//    @GetMapping("/video-view-counts")
-//    public JsonResponse<Integer> getVideoViewCounts(@RequestParam Long videoId){
-//        Integer count = videoService.getVideoViewCounts(videoId);
-//        return new JsonResponse<>(count);
-//    }
-//
-//    /**
-//     * 视频内容推荐
-//     */
-//    @GetMapping("/recommendations")
-//    public JsonResponse<List<Video>> recommend() throws TasteException {
-//        Long userId = userSupport.getCurrentUserId();
-//        List<Video> list = videoService.recommend(userId);
-//        return new JsonResponse<>(list);
-//    }
-//
+    /**
+     * 添加视频观看记录
+     */
+    @PostMapping("/video-views")
+    public JsonResponse<String> addVideoView(@RequestBody VideoView videoView,
+                                             HttpServletRequest request){
+        Long userId;
+        try{
+            userId = userSupport.getCurrentUserId();
+            videoView.setUserId(userId);
+            videoService.addVideoView(videoView, request);
+        }catch (Exception e){
+            videoService.addVideoView(videoView, request);
+        }
+        //同步更新视频播放量到Elasticsearch
+        elasticSearchService.updateVideoViewCount(videoView.getVideoId());
+        return JsonResponse.success();
+    }
+
+    /**
+     * 查询视频播放量
+     */
+    @GetMapping("/video-view-counts")
+    public JsonResponse<Integer> getVideoViewCounts(@RequestParam Long videoId){
+        Integer count = videoService.getVideoViewCounts(videoId);
+        return new JsonResponse<>(count);
+    }
+
+    /**
+     * 视频内容推荐
+     */
+    @GetMapping("/recommendations")
+    public JsonResponse<List<Video>> recommend() throws TasteException {
+        Long userId = userSupport.getCurrentUserId();
+        List<Video> list = videoService.recommend(userId);
+        return new JsonResponse<>(list);
+    }
+
 //    /**
 //     * 视频帧截取生成黑白剪影
 //     */

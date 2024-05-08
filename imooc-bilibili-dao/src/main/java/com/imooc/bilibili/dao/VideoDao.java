@@ -58,16 +58,16 @@ public interface VideoDao {
 
     Video getVideoDetails(Long videoId);
 
-//    Integer addVideoView(VideoView videoView);
-//
-//    Integer getVideoViewCounts(Long videoId);
-//
-//    VideoView getVideoView(Map<String, Object> params);
-//
-//    List<UserPreference> getAllUserPreference();
-//
-//    List<Video> batchGetVideosByIds(@Param("idList") List<Long> idList);
-//
+    Integer addVideoView(VideoView videoView);
+
+    Integer getVideoViewCounts(Long videoId);
+
+    VideoView getVideoView(Map<String, Object> params);
+
+    List<UserPreference> getAllUserPreference();
+
+    List<Video> batchGetVideosByIds(@Param("idList") List<Long> idList);
+
 //    Integer batchAddVideoBinaryPictures(@Param("pictureList") List<VideoBinaryPicture> pictureList);
 //
 //    List<VideoTag> getVideoTagsByVideoId(Long videoId);
